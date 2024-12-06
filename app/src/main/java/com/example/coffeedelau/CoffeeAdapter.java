@@ -11,6 +11,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -19,11 +24,13 @@ public class CoffeeAdapter extends RecyclerView.Adapter<CoffeeAdapter.CoffeeView
     private Context context;
     private List<Coffee> coffeeList;
     private HashMap<Integer, Integer> orderCounts; // Track the count for each coffee item
+    private Gson gson;
 
     public CoffeeAdapter(Context context, List<Coffee> coffeeList) {
         this.context = context;
         this.coffeeList = coffeeList;
         this.orderCounts = new HashMap<>(); // Initialize the HashMap
+        this.gson = new Gson();
     }
 
     @NonNull
@@ -94,18 +101,29 @@ public class CoffeeAdapter extends RecyclerView.Adapter<CoffeeAdapter.CoffeeView
         SharedPreferences sharedPreferences = context.getSharedPreferences("OrderPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        // Create a string to store all order details
-        StringBuilder orders = new StringBuilder();
+        // Retrieve the customer's name from SharedPreferences
+        String customerName = sharedPreferences.getString("CustomerName", "Anonymous");
+
+        // Prepare the list of orders
+        List<Order> orders = new ArrayList<>();
+
         for (int i = 0; i < coffeeList.size(); i++) {
             if (orderCounts.get(i) != null && orderCounts.get(i) > 0) {
                 Coffee coffee = coffeeList.get(i);
-                orders.append(coffee.getName()).append(": ").append(orderCounts.get(i)).append(" pcs\n");
+                Order order = new Order(customerName, coffee.getName(), orderCounts.get(i));
+                orders.add(order);
             }
         }
 
-        // Save orders to SharedPreferences
-        editor.putString("CustomerOrders", orders.toString());
+        // Convert list of orders to JSON string and save to SharedPreferences
+        String ordersJson = gson.toJson(orders);
+        editor.putString("CustomerOrders", ordersJson);
         editor.apply();
+    }
+
+    public int getOrderCount(int position) {
+        // Return the order count for the specified coffee item
+        return orderCounts.getOrDefault(position, 0);
     }
 
     public static class CoffeeViewHolder extends RecyclerView.ViewHolder {

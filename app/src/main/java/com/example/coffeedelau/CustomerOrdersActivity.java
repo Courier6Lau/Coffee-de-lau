@@ -3,10 +3,14 @@ package com.example.coffeedelau;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-import java.util.HashMap;
+import java.lang.reflect.Type;
+import java.util.List;
 
 public class CustomerOrdersActivity extends AppCompatActivity {
 
@@ -19,15 +23,38 @@ public class CustomerOrdersActivity extends AppCompatActivity {
 
         tvCustomerOrders = findViewById(R.id.tvCustomerOrders);
 
-        // Retrieve orders from SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("OrderPrefs", Context.MODE_PRIVATE);
-        String customerName = sharedPreferences.getString("CustomerName", "Unknown");
+        try {
+            // Retrieve orders from SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("OrderPrefs", Context.MODE_PRIVATE);
+            String ordersJson = sharedPreferences.getString("CustomerOrdersList", "[]");
 
-        // Assuming order details are saved as HashMap-like strings
-        String orders = sharedPreferences.getString("CustomerOrders", "No orders found");
+            // Convert the orders JSON string to a List<Order> using Gson
+            Gson gson = new Gson();
+            Type type = new TypeToken<List<Order>>() {}.getType();
+            List<Order> customerOrders = gson.fromJson(ordersJson, type);
 
-        // Display customer orders
-        String orderDetails = "Customer Name: " + customerName + "\n" + "Orders:\n" + orders;
-        tvCustomerOrders.setText(orderDetails);
+            if (customerOrders == null || customerOrders.isEmpty()) {
+                tvCustomerOrders.setText("No orders found.\n");
+                return;
+            }
+
+            // Build the order details string in a simple list format
+            StringBuilder orderDetailsBuilder = new StringBuilder();
+            orderDetailsBuilder.append("All Customer Orders:\n\n");
+
+            for (Order order : customerOrders) {
+                orderDetailsBuilder
+                        .append(order.getCustomerName()).append(" ")
+                        .append(order.getCoffeeName()).append(" ")
+                        .append(order.getQuantity()).append("\n");
+            }
+
+            // Display customer orders
+            tvCustomerOrders.setText(orderDetailsBuilder.toString());
+
+        } catch (Exception e) {
+            Log.e("CustomerOrdersActivity", "Error retrieving orders: ", e);
+            tvCustomerOrders.setText("An error occurred while loading orders.");
+        }
     }
 }
